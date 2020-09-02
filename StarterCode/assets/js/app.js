@@ -7,7 +7,7 @@ var margin = {
   top: 20,
   right: 40,
   bottom: 150,
-  left: 50
+  left: 150
 };
 var chartWidth = svgWidth - margin.left - margin.right;
 var chartHeight = svgHeight - margin.top - margin.bottom;
@@ -68,15 +68,24 @@ d3.csv("data.csv").then(function(inputData){
         var smokesLow = inputData.map(data => data.smokesLow);
         var st = inputData.map(data => data.state);
 
+        var xval = poverty;
+        var xValState = "poverty";
+        var yval = healthcare;
+        var yValState = "healthcare";
+        
+    function buildCircles(xValState, yValState, xval, yval){
 
+    
         // Step 5: Create the scales
         var xScale = d3.scaleLinear()
-                    .domain(d3.extent(poverty))
+                    .domain(d3.extent(xval))
                     .range([0, chartWidth]);
                     // .classed("entireXaxis", true);
-          
+
+                    
         var yScale = d3.scaleLinear()
-                    .domain([0, d3.max(healthcare)])
+                    // .domain([0, d3.max(healthcare)])
+                    .domain(d3.extent(yval))
                     .range([chartHeight,0]);
 
         // Step 6: Create Axes
@@ -87,9 +96,10 @@ d3.csv("data.csv").then(function(inputData){
         chartGroup.append("g")
             .attr("transform", `translate(0, ${chartHeight})`)
              .classed("entireXaxis", true)
-           .call(xAxis);
+            .call(xAxis);
 
         chartGroup.append("g")
+            .classed("entireYaxis", true)
             .call(yAxis);
         
         // Step 8: Build the circles and append to the chart group
@@ -98,13 +108,16 @@ d3.csv("data.csv").then(function(inputData){
         circles.data(inputData)
             .enter()
             .append("circle")
-            .attr("cx", function (d) { return xScale(d.poverty); })
-            .attr("cy", function (d) { return yScale(d.healthcare); })
+            .attr("cx", function (d) { return xScale(d[xValState]); })
+            .attr("cy", function (d) { return yScale(d[yValState]); })
             .attr("r", circleRadius)
             .attr("stroke", "black")
             .attr("stroke_width", "5")
-            .attr("fill", "red");
+            .attr("fill", "red")
+            .classed("circles", true);
 
+
+            
         // Add text element to the SVG area/bind the data
         var text = chartGroup.selectAll("text").enter();
         
@@ -112,9 +125,9 @@ d3.csv("data.csv").then(function(inputData){
             .enter()
             .append("text")
         
-        // Populate the text
-            .attr("x", function (d) { return xScale(d.poverty); })
-            .attr("y", function (d) { return yScale(d.healthcare); })
+        // Populate the text in the circles
+            .attr("x", function (d) { return xScale(d[xValState]); })
+            .attr("y", function (d) { return yScale(d[yValState]); })
             .text(d => (d.abbr))
             .attr("font-family", "sans-serif")
             .attr("font-size", "12px")
@@ -122,6 +135,11 @@ d3.csv("data.csv").then(function(inputData){
             .attr("fill", "black")
             .attr("dy", function (d) { return circleRadius - 10 })
             .attr("dx", function (d) { return (circleRadius/2)*-1 })
+            .classed("circles", true)
+        };   
+
+        //Call circles function to initialize graph
+        buildCircles(xValState, yValState, xval, yval);
 
         // X-Axis In Poverty Label
         chartGroup.append("text")
@@ -132,7 +150,8 @@ d3.csv("data.csv").then(function(inputData){
             .attr("fill", "black")
             .text("In Poverty (%)")
             .classed("xAxisGroup", true)
-            .attr("id", "poverty");
+            .attr("id", "poverty")
+            .classed("selected", true);
         
         // X-Axis Age
         chartGroup.append("text")
@@ -140,11 +159,12 @@ d3.csv("data.csv").then(function(inputData){
             .attr("text-anchor", "middle")
             .attr("font-size","16px")
             .attr("font-weight", "bold")
-            .attr("fill", "black")
+            //.attr("fill", "black")
             .text("Age (Median)")
             .classed("xAxisGroup", true)
             .attr("id", "age")
-            .attr("dy", "+1.5em");
+            .attr("dy", "+1.5em")
+            .classed("notSelected", true);
 
          // X-Axis Household income
         chartGroup.append("text")
@@ -152,13 +172,14 @@ d3.csv("data.csv").then(function(inputData){
             .attr("text-anchor", "middle")
             .attr("font-size","16px")
             .attr("font-weight", "bold")
-            .attr("fill", "black")
+            //.attr("fill", "black")
             .text("Household Income")
             .classed("xAxisGroup", true)
             .attr("id", "income")
-            .attr("dy", "+3em");
+            .attr("dy", "+3em")
+            .classed("notSelected", true);
             
-        // Y-Axis Label
+        // Y-Axis Label - Lacks Healthcare
         chartGroup.append("text")
             .attr("transform", "rotate(-90)")
             .attr("y", -35)
@@ -167,35 +188,76 @@ d3.csv("data.csv").then(function(inputData){
             .attr("font-size","16px")
             .attr("font-weight", "bold")
             .attr("fill", "black")
-            .text("Lacks Healthcare (%)");   
+            .classed("yAxisGroup", true)
+            .attr("id", "healthcare")
+            .text("Lacks Healthcare (%)")
+            .classed("selected", true);   
   
-
-// Create Event listener
+        // Y-Axis Label - Smokes
+        chartGroup.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -55)
+            .attr("x", 0 - (chartHeight/2))
+            .attr("text-anchor", "middle")
+            .attr("font-size","16px")
+            .attr("font-weight", "bold")
+            //.attr("fill", "black")
+            .classed("yAxisGroup", true)
+            .attr("id", "smokes")
+            .text("Smokes (%)")
+            .classed("notSelected", true);   
+        
+        // Y-Axis Label - Obese
+        chartGroup.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -75)
+            .attr("x", 0 - (chartHeight/2))
+            .attr("text-anchor", "middle")
+            .attr("font-size","16px")
+            .attr("font-weight", "bold")
+            //.attr("fill", "black")
+            .classed("yAxisGroup", true)
+            .attr("id", "obese")
+            .text("Obese (%)")
+            .classed("notSelected", true);   
+  
+// Create Event listener for X-Axis
 d3.selectAll(".xAxisGroup").on("click", function () {
     
     //Clear X Axis
     d3.selectAll(".entireXaxis").remove();
 
+    // Clear Circles
+    d3.selectAll(".circles").remove();
+
     // get value of selection
-    var value = d3.select(this).attr("id")
+    var xInput = d3.select(this).attr("id")
     // Create the scales
-            if(value == "poverty"){
+            if(xInput == "poverty"){
                 var xScale = d3.scaleLinear()
                 .domain(d3.extent(poverty))
                 .range([0, chartWidth]);
+                xValState = "poverty";
+                xval = poverty;
+                
             }
-            else if (value == "age"){
+            else if (xInput == "age"){
                 var xScale = d3.scaleLinear()
                 .domain(d3.extent(age))
-                .range([0, chartWidth]);           
+                .range([0, chartWidth]);
+                xValState = "age";
+                xval = age;           
             }
             
-            else if (value == "income"){
+            else if (xInput == "income"){
                 var xScale = d3.scaleLinear()
                 .domain(d3.extent(income))
                 .range([0, chartWidth]);
+                xValState = "income";
+                xval = income;
             }       
-            console.log(value);
+            
+        
     
     //Update axes 
     var bottomAxis = d3.axisBottom(xScale)
@@ -204,11 +266,59 @@ d3.selectAll(".xAxisGroup").on("click", function () {
             .classed("entireXaxis", true)
             .transition()
             .duration(250)           
-            .call(bottomAxis);        
+            .call(bottomAxis)
+            
+        buildCircles(xValState, yValState, xval, yval);        
+        });
 
+// // Create Event listener for Y-Axis
+d3.selectAll(".yAxisGroup").on("click", function () {
+    
+    //Clear Y Axis
+    d3.selectAll(".entireYaxis").remove();
+    d3.selectAll(".circles").remove();
 
-    });
+    // get value of selection
+    var yInput = d3.select(this).attr("id")
+    // Create the scales
+            if(yInput == "healthcare"){
+                var yScale = d3.scaleLinear()
+                .domain(d3.extent(healthcare))
+                .range([chartHeight, 0]);
+                yValState = "healthcare";
+                yval = healthcare;
+            }
+            else if (yInput == "smokes"){
+                var yScale = d3.scaleLinear()
+                .domain(d3.extent(smokes))
+                .range([chartHeight, 0]);
+                yValState = "smokes";
+                yval = smokes;           
+            }
+            
+            else if (yInput == "obese"){
+                var yScale = d3.scaleLinear()
+                .domain(d3.extent(obesity))
+                .range([chartHeight, 0]);
+                yValState = "obesity";
+                yval = obesity
+            }       
+
+            
+    //Update axes 
+    var verticalAxis = d3.axisLeft(yScale)
+    chartGroup.append("g")
+            .classed("entireYaxis", true)
+            .transition()
+            .duration(250)           
+            .call(verticalAxis);
+
+        buildCircles(xValState, yValState, xval, yval); 
+
+ 
+        });
 }).catch(function(error) {
     console.log(error);
-});
-  
+     });
+
+//python -m http.server
